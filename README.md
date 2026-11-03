@@ -6,7 +6,7 @@
 
 ## 唯一工作目录与发布边界
 
-本机后续开发固定在 `D:\SOL`，打开根目录 `Sol.sln`。`.venv` 由目录内 `toolchain/python` 创建，核心依赖锁定在 `requirements.lock.txt`，不使用旧AstrBot启动器的Python。系统仍需Windows、Visual Studio/.NET SDK、CMake及Docker Desktop等开发工具。
+作者本机后续开发固定在 `D:\SOL`，其他使用者可以选择自己的克隆目录，脚本按项目根目录定位。打开根目录 `Sol.sln`。`.venv` 优先由目录内 `toolchain/python` 创建，也支持标准Python 3.12；核心依赖锁定在 `requirements.lock.txt`，不使用旧AstrBot启动器的Python。系统仍需Windows、Visual Studio/.NET SDK、CMake及Docker Desktop等开发工具。
 
 源码、资源制作说明与脚本可上传GitHub；`state`（个人数据和凭据）、`toolchain`、`runtime`（模型/浏览器/绘图环境）、`.venv`、`build`、`dist`和`.migration`均被Git排除。个人运行目录不能直接整目录打成公开安装包。后续发布由构建脚本生成干净程序，再按需准备模型，使用者自行登录自己的账号并填写密钥。
 
