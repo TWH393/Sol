@@ -1,0 +1,5 @@
+name: companion_bridge
+display_name: 同伴核心接口
+desc: 将 AstrBot 消息与第三方插件接入同伴的统一服务
+version: 0.1.0
+author: Companion

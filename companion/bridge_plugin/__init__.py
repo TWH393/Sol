@@ -1,0 +1,1 @@
+"""AstrBot integration entrypoint."""

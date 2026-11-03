@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- CompositionControl needs the WinRT projection supplied by a versioned
+         Windows TFM; plain -windows does not publish Microsoft.Windows.SDK.NET. -->
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>Sol</AssemblyName>
+    <RootNamespace>Sol.Desktop</RootNamespace>
+    <Version>0.2.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\branding\sol-app.ico</ApplicationIcon>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="..\..\assets\branding\sol-app.ico" Link="Assets\sol-app.ico" />
+    <Content Include="..\..\assets\branding\sol-app.ico" Link="branding\sol-app.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Resource Include="..\..\assets\branding\sol-transparent-flat-lines-v1.png" Link="Assets\sol-loading.png" />
+    <Content Include="..\..\assets\licenses\WebView2-SDK-license.txt" Link="licenses\WebView2-SDK-license.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Resource Include="..\..\assets\branding\sol-main.jpg" Link="Assets\sol-main.jpg" />
+    <Resource Include="..\..\assets\branding\sol-dark.jpg" Link="Assets\sol-dark.jpg" />
+    <Resource Include="..\..\assets\branding\sol-dark.ico" Link="Assets\sol-dark.ico" />
+    <Resource Include="..\..\assets\branding\sol-main.ico" Link="Assets\sol-main.ico" />
+    <Content Include="..\..\assets\branding\sol-main.ico" Link="branding\sol-main.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+  <Target Name="RequireCompositionRuntimeInPublish" AfterTargets="Publish">
+    <Error Condition="!Exists('$(PublishDir)Microsoft.Windows.SDK.NET.dll')" Text="Sol发布缺少Microsoft.Windows.SDK.NET.dll，不能分发CompositionControl版本。" />
+    <Error Condition="!Exists('$(PublishDir)WinRT.Runtime.dll')" Text="Sol发布缺少WinRT.Runtime.dll，不能分发CompositionControl版本。" />
+  </Target>
+</Project>

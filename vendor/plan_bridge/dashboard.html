@@ -1,0 +1,101 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QQ · ChatGPT 套餐连接</title>
+<style>body{margin:0;background:#10141c;color:#eef2fa;font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif}main{max-width:760px;margin:8vh auto;padding:30px}h1{font-size:30px;margin-bottom:8px}p{color:#adb9cf}section{background:#1a2231;border:1px solid #303c50;border-radius:18px;padding:24px;margin:22px 0}button,a.button{display:inline-block;font:inherit;cursor:pointer;background:#e8eef8;color:#172131;border:0;border-radius:9px;padding:11px 19px;text-decoration:none;margin:5px 8px 5px 0}button:disabled{opacity:.45;cursor:wait}.secondary{background:#303e55;color:#edf3ff}select{font:inherit;background:#101722;color:white;border:1px solid #40516c;border-radius:8px;padding:10px;max-width:100%}pre{white-space:pre-wrap;word-break:break-word;color:#d5e4ff}#error{color:#ffb6aa}small{color:#91a3bd}a{color:#97c5ff}.good{color:#99e0bb}table.breakdown{width:100%;border-collapse:collapse;font-size:14px}table.breakdown th,table.breakdown td{text-align:left;padding:6px;border-bottom:1px solid #303c50}.meter{height:5px;background:#82b4ed;border-radius:4px;margin-top:3px}.usage-call{margin:12px 0;padding:10px;background:#101722;border-radius:9px}.usage-call summary{cursor:pointer;font-size:14px}.detail-note{font-size:13px;color:#a9bad2}</style>
+<main><small>本机连接 · 使用现有 ChatGPT 套餐</small><h1>让 QQ 机器人使用你的 ChatGPT 套餐</h1><p>先登录并验证一条回复，再连接机器人。套餐达到限额时暂停。</p>
+<section><h2>1. 登录 ChatGPT</h2><div id="account">正在检查连接…</div><a class="button" href="/auth/start">Continue with ChatGPT</a><a href="/auth/start?new=true">使用其他账号</a><div id="accounts"></div><p>在 OpenAI 官方页面登录并授权。密码只需在官方页面输入。</p><button class="secondary" onclick="disconnect()">断开当前账号</button></section>
+<section><h2>2. GPT 套餐连接测试</h2><p>模型选择与思考强度已统一移到 AstrBot 插件页面。此桥仅提供 GPT 套餐接入。</p><p><a href="http://127.0.0.1:24661/#/plugin-page/qq_model_control/models" target="_blank">打开 AstrBot 模型与思考强度</a></p><p id="plan">等待登录。</p><p id="model-current">正在读取已应用模型…</p><button id="load" onclick="loadModels()">刷新模型列表</button><select id="model" onchange="modelChanged()"><option value="">请先获取模型</option></select><button hidden id="apply-model" onclick="applyModel()">应用到全部会话</button><button id="test" class="secondary" onclick="test()">仅测试所选模型</button><p id="model-hint" class="detail-note">测试会消耗 GPT 套餐额度，且不会改变 AstrBot 当前模型。</p><div hidden id="reasoning-panel"><h3>思考深度</h3><p id="reasoning-current">正在读取当前设置…</p><label for="reasoning-effort">当前已应用模型的思考深度 </label><select id="reasoning-effort" onchange="updateReasoningState()"></select><button id="apply-reasoning" onclick="applyReasoning()">保存思考深度</button><p class="detail-note">按模型分别保存，作用于全部机器人会话；下一次请求生效。保存不调用模型、不消耗额度。深度越高通常越慢，思考 token 也可能增加。</p></div><pre id="result"></pre><div id="error"></div><p><a href="https://chatgpt.com/#settings/Usage" target="_blank" rel="noreferrer">查看和管理 ChatGPT 使用量</a></p><button class="secondary" onclick="resume()">查看额度后恢复调用</button></section>
+<section><h2>3. 连接 QQ 机器人</h2><p id="next">完成上面的回复测试后，再由助手配置 AstrBot。</p></section>
+<section><h2>桥接调用用量</h2><select id="usage-window" onchange="usage()"><option value="5h">最近5小时（滚动）</option><option value="today">今天</option><option value="all">开始记录以来</option></select><button class="secondary" onclick="usage()">刷新记录</button><pre id="usage-summary">正在读取…</pre><details open><summary>输入 token 来源明细（文字估算）</summary><p class="detail-note">接口实际输入量以“输入 token”为准。下方按本地参考分词估算文字构成，占比仅针对估算文字；图片、音频、文件与上游附加内容无法精确分摊。统计只保存计数，不保存对话原文。</p><div id="input-breakdown"></div></details><small>仅记录经过本桥的调用，包含机器人和桥接验证。无法换算官方5小时额度百分比；未返回token用量时显示未知。不记录聊天内容。</small><details><summary>最近50次调用</summary><div id="usage-recent"></div></details></section>
+</main><script>
+let busy=false, bridgeStatus=null;
+const purposeNames={image_plan:'图片定位规划',image_review:'图片结果检查',context_summary:'历史摘要',chat_or_tool:'聊天/工具调度',unclassified:'旧记录（未分类）'};
+const sourceNames={dashboard_test:'页面测试',development_test:'开发验证',bot_bridge:'GPT 机器人调用',astrbot_provider:'AstrBot 直连调用'};
+async function localFetch(path,options){let r=await fetch(path,options);if(r.status===401){await fetch("/");r=await fetch(path,options)}return r}
+async function call(path,body={}){let r=await localFetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d=await r.json();if(!r.ok)throw new Error(d.error?.message||d.detail||'连接失败');return d}
+async function task(fn){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);document.getElementById('error').textContent='';try{await fn()}catch(e){document.getElementById('error').textContent=e.message}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);updateModelState()}}
+async function status(){try{let r=await localFetch('/admin/status');if(!r.ok)throw new Error('无法读取连接状态，请刷新页面。');let s=await r.json();bridgeStatus=s;updateModelState();document.getElementById('account').textContent=s.signed_in?'已登录：'+s.email:'尚未登录';document.getElementById('plan').textContent=s.provider==='deepseek'?'当前使用 DeepSeek，按独立 API 余额计费；不会消耗 GPT 套餐。':s.plan_enabled?(s.paused?'套餐调用已暂停。':'GPT 套餐连接已就绪，GPT 请求会消耗套餐额度。'):'等待套餐使用授权。';if(s.last_error)document.getElementById('error').textContent=s.last_error;if(s.last_test?.ok){if(!document.getElementById('result').textContent)document.getElementById('result').textContent='测试成功：'+s.last_test.text+'\n模型：'+s.last_test.model;document.getElementById('next').textContent='已成功完成套餐回复。现在可以继续配置 AstrBot。'}let box=document.getElementById('accounts');if(!box.children.length&&s.accounts.length>1){let sel=document.createElement('select');for(let a of s.accounts){let o=document.createElement('option');o.value=a.id;o.textContent=a.label;o.selected=a.id===s.active;sel.appendChild(o)}sel.onchange=()=>task(async()=>{await call('/admin/account',{id:sel.value});location.reload()});box.appendChild(sel)}return s}catch(e){document.getElementById('error').textContent=e.message}}
+function updateModelState(){
+ const s=bridgeStatus,sel=document.getElementById('model'),apply=document.getElementById('apply-model');
+ document.getElementById('model-current').textContent='机器人模型由 AstrBot 统一控制，本页所选模型仅用于连接测试。';
+
+ apply.disabled=busy||!s?.model_switch_supported||!s?.signed_in||!s?.plan_enabled||!sel.value||sel.value===s.bot_model;
+ sel.disabled=busy;
+ updateReasoningState();
+ if(s?.model_switch_supported)document.getElementById('model-hint').textContent=sel.value&&sel.value!==s.bot_model?'待切换：'+sel.value+'。点击“应用到全部会话”才会生效，优先于 QQ 会话的单独选择；切换不消耗模型额度。':'所选模型已应用。测试会产生实际模型调用，GPT 消耗套餐额度，DeepSeek 按 API 计费。';
+}
+let reasoningModel='';
+function updateReasoningState(){
+ const s=bridgeStatus,select=document.getElementById('reasoning-effort'),button=document.getElementById('apply-reasoning');
+ const model=s?.bot_model||s?.model||'';
+ const choices=s?.reasoning_options||[];
+ if(reasoningModel!==model||!select.options.length){
+  reasoningModel=model;select.replaceChildren();
+  for(const item of choices){const o=document.createElement('option');o.value=item.value;o.textContent=item.label;select.appendChild(o)}
+  select.value=s?.bot_reasoning_effort||'';
+ }
+ const current=choices.find(o=>o.value===s?.bot_reasoning_effort)?.label||'模型默认';
+ document.getElementById('reasoning-current').textContent=model?`已应用模型 ${model} · 当前：${current}`:'请先应用模型';
+ select.disabled=busy||!model||!choices.length;
+ button.disabled=busy||!model||!select.value||select.value===s?.bot_reasoning_effort;
+}
+async function applyReasoning(){await task(async()=>{
+ const model=reasoningModel,effort=document.getElementById('reasoning-effort').value;
+ const d=await call('/admin/reasoning',{model,effort});
+ document.getElementById('result').textContent='思考深度已保存：'+d.model+' / '+d.effort+'，下一次请求生效';
+ await status();
+})}
+function modelChanged(){updateModelState()}
+async function loadModels(){await task(async()=>{
+ let sel=document.getElementById('model'),previous=sel.value,d=await call('/admin/models');
+ const wanted=previous||(bridgeStatus?.model?.startsWith('gpt-')?bridgeStatus.model:'gpt-6-luna');
+ sel.replaceChildren();
+ for(let m of d.models){let o=document.createElement('option');o.value=m.slug;o.textContent=m.name+' ('+m.slug+')';sel.appendChild(o)}
+ // Keep the chosen model visible without claiming it is currently available.
+ for(let slug of new Set([wanted,'gpt-6.1-sol']))if(![...sel.options].some(o=>o.value===slug)){
+  let o=document.createElement('option');o.value=slug;o.textContent=slug+'（未列出，需要测试验证）';sel.appendChild(o);
+ }
+ sel.value=wanted;
+ if(!d.models.some(m=>m.slug===wanted))document.getElementById('error').textContent='所选模型暂未列出，可以先测试验证；不会自动换成其他模型。';
+ updateModelState();
+})}
+async function applyModel(){await task(async()=>{
+ const model=document.getElementById('model').value;
+ const d=await call('/admin/model',{model});
+ document.getElementById('result').textContent=d.message+'\n已应用模型：'+d.model;
+ await status();
+})}
+async function test(){await task(async()=>{let model=document.getElementById('model').value;if(!model)throw new Error('先获取并选择模型。');document.getElementById('result').textContent='正在等待完整回复…';let d=await call('/admin/test',{model});document.getElementById('result').textContent='测试成功：'+d.text+'\n测试模型：'+model+'（测试不会切换机器人模型）';await status()})}
+async function disconnect(){await task(async()=>{let d=await call('/admin/disconnect');document.getElementById('result').textContent=d.message;await status()})}
+async function resume(){await task(async()=>{await call('/admin/resume');await status()})}
+const categoryNames={system:'系统提示',history:'聊天历史',current_message:'当前用户消息',tool_definitions:'工具说明',tool_results:'工具返回',tool_calls:'工具调用参数',other:'其他文字/格式要求'};
+const n=x=>x==null?'未知':Number(x).toLocaleString();
+function renderBreakdown(parent,d,aggregate=false){
+ parent.replaceChildren();
+ if(!d){parent.textContent='暂无来源数据：旧记录无法补算；若新调用仍无明细，需要重启模型桥加载更新。';return}
+ const note=document.createElement('p');note.className='detail-note';
+ note.textContent=aggregate?`覆盖 ${d.recorded_calls} 次请求，${d.missing_calls} 次无来源记录。包含失败或未完成请求的输入构成，不能视为已计费用量。`:(d.method==='o200k_base_reference'?'本地 o200k_base 参考分词，非此模型官方计数。':'UTF-8 字节粗估，分词资源未就绪，误差可能较大。');
+ parent.append(note);
+ const table=document.createElement('table');table.className='breakdown';
+ const header=table.insertRow();for(const label of ['输入来源','估算 token','估算文字占比']){const cell=document.createElement('th');cell.textContent=label;header.append(cell)}
+ for(const [key,value] of Object.entries(d.categories||{}).sort((a,b)=>b[1].estimated_tokens-a[1].estimated_tokens)){
+  const row=table.insertRow(),percent=d.estimated_text_tokens?100*value.estimated_tokens/d.estimated_text_tokens:0;
+  row.insertCell().textContent=categoryNames[key]||key;row.insertCell().textContent=n(value.estimated_tokens);
+  const share=row.insertCell();share.textContent=percent.toFixed(1)+'%';const bar=document.createElement('div');bar.className='meter';bar.style.width=Math.max(0,Math.min(100,percent))+'%';share.append(bar);
+ }
+ parent.append(table);
+ const media=d.media||{},tail=document.createElement('p');tail.className='detail-note';
+ tail.textContent=`文字合计估算 ${n(d.estimated_text_tokens)} token；图片 ${media.images||0} 张，音频 ${media.audio||0} 项，文件 ${media.files||0} 项，其他不可展开内容 ${media.opaque_items||0} 项。媒体 token 未估算，不能当作 0。`;
+ parent.append(tail);
+}
+async function usage(){try{
+ let r=await localFetch('/admin/usage?window='+document.getElementById('usage-window').value);if(!r.ok)throw new Error('用量记录读取失败');let d=await r.json(),t=d.totals;
+ document.getElementById('usage-summary').textContent=`调用 ${t.calls} 次 · 成功 ${t.success} · 失败 ${t.failed} · 未完成 ${t.unfinished}\n实际输入 token：${n(t.input_tokens)}\n实际输出 token：${n(t.output_tokens)}\n合计 token：${n(t.total_tokens)}\n其中缓存输入：${n(t.cached_tokens)}；思考输出：${n(t.reasoning_tokens)}（已包含在输入/输出中）\n成功但未返回完整用量：${t.missing_usage} 次\n首次记录：${d.recording_since?new Date(d.recording_since*1000).toLocaleString():'尚无调用'}\n`+d.sources.map(s=>`${sourceNames[s.source]||s.source}：${s.calls} 次，${n(s.total_tokens)} token`).join('\n')+'\n用途统计：\n'+(d.purposes||[]).map(p=>`${purposeNames[p.purpose]||p.purpose}：${p.calls} 次，${n(p.total_tokens)} token`).join('\n');
+ renderBreakdown(document.getElementById('input-breakdown'),d.input_breakdown,true);
+ const recent=document.getElementById('usage-recent'),expanded=new Set([...recent.querySelectorAll('details[open]')].map(e=>e.dataset.call));recent.replaceChildren();
+ for(const c of d.recent){const item=document.createElement('details');item.className='usage-call';item.dataset.call=String(c.started);item.open=expanded.has(item.dataset.call);const title=document.createElement('summary');title.textContent=`${new Date(c.started*1000).toLocaleString()} | ${c.model} | ${sourceNames[c.source]||c.source} / ${purposeNames[c.purpose]||'未分类'} | ${c.status} | 输入 ${n(c.input_tokens)} / 输出 ${n(c.output_tokens)} token${c.error_code?' | '+c.error_code:''}`;item.append(title);const body=document.createElement('div');renderBreakdown(body,c.input_breakdown);item.append(body);recent.append(item)}
+ if(!d.recent.length)recent.textContent='尚无记录';
+ }catch(e){document.getElementById('usage-summary').textContent=e.message}}
+
+status().then(s=>{if(s?.deepseek_configured||(s?.signed_in&&s.plan_enabled))loadModels()});usage();setInterval(status,5000);setInterval(usage,10000);
+</script></html>
+
+

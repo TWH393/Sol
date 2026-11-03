@@ -1,0 +1,11 @@
+.operation-spinner,.is-busy.button::before,.is-busy button[type=submit]::before {
+  content:"";display:inline-block;flex:none;width:13px;height:13px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sol-operation-spin .9s linear infinite;vertical-align:-2px;
+}
+.is-busy.button::before,.is-busy button[type=submit]::before {margin-right:7px}
+.is-busy.button,.is-busy button[type=submit] {cursor:wait}
+[data-sol-unconfirmed] {opacity:.65}
+#page {position:relative;min-height:180px}
+.region-wait {position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--text);background:color-mix(in srgb,var(--bg) 94%,transparent);font-size:13px}
+.region-wait .operation-spinner {color:var(--accent)}
+@keyframes sol-operation-spin {to {transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.operation-spinner,.is-busy.button::before,.is-busy button[type=submit]::before{animation:none}}

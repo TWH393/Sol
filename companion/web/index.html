@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light"><meta name="theme-color" content="#FAF8F3"><title>Sol</title>
+  <link id="theme-favicon" rel="icon" type="image/x-icon" href="/brand/sol-main.ico">
+  <script src="/assets/theme.js"></script>
+  <link rel="stylesheet" href="/assets/style.css">
+  <link rel="stylesheet" href="/assets/branding.css">
+  <link rel="stylesheet" href="/assets/theme.css">
+  <link rel="stylesheet" href="/assets/unified.css">
+  <link rel="stylesheet" href="/assets/loading.css">
+  <script src="/assets/desktop-startup.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#overview"><img class="brand-mark theme-logo-light" src="/brand/sol-main.jpg" alt="Sol" width="44" height="44"><img class="brand-mark theme-logo-dark" src="/brand/sol-dark.jpg" alt="Sol" width="44" height="44"><span>Sol</span></a>
+      <button class="search-nav" id="global-search"><span>搜索内容</span><kbd>Ctrl K</kbd></button>
+      <p class="nav-section">工作空间</p>
+      <nav id="navigation"></nav>
+      <div class="sidebar-bottom"><button data-route="settings" class="sidebar-setting"><span data-icon="settings"></span>设置与运行环境</button><div class="identity"><span class="avatar">S</span><div><strong id="sidebar-name">机器人未配置</strong><small id="sidebar-state">等待初始设置</small></div><span id="connection-dot" class="dot"></span></div></div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar"><div class="topbar-left"><button class="icon-button" id="toggle-sidebar" title="收起侧栏" data-icon="panel"></button><span class="breadcrumb">工作空间 <span>/</span> <b id="page-name">运行总览</b></span></div><div class="topbar-right"><button class="button small" id="toggle-theme" type="button" title="切换浅色或暗色，并保存选择">切换暗色</button><span class="status-chip" id="global-status"><i class="dot"></i>尚未连接</span><button class="model-chip" data-route="models" id="model-chip">选择主模型 <span>⌄</span></button><button class="icon-button" id="refresh-page" title="刷新" data-icon="refresh"></button></div></header>
+      <div id="notice" role="status" class="notice hidden"></div>
+      <section class="page" id="page"></section>
+      <footer class="statusbar"><span id="footer-status">仅本机访问 · 同一套核心与数据</span><span id="last-refresh">等待数据</span></footer>
+    </main>
+  </div>
+  <dialog id="modal"><div class="modal-top"><h2 id="modal-title"></h2><button class="icon-button" id="close-modal" data-icon="close" title="关闭"></button></div><div id="modal-body"></div></dialog>
+  <div id="toast" role="status" class="toast hidden"></div>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "companion-studio"
+version = "0.2.0"
+description = "Sol: a native Windows desktop with an internal AstrBot, QQ and model engine"
+license = {text = "AGPL-3.0-or-later"}
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.28,<1", "pydantic>=2.10,<3", "psutil>=7,<8", "Pillow>=11,<14", "python-multipart>=0.0.20", "PyYAML>=6", "cryptography>=43", "yt-dlp", "faster-whisper", "PyMuPDF", "pypdf>=6,<7", "python-docx", "python-pptx", "openpyxl", "beautifulsoup4", "playwright", "imageio-ffmpeg", "huggingface-hub", "PyJWT[crypto]>=2.9,<3", "tiktoken", "aiohttp", "jsonschema", "mcp>=1.29,<2"]
+
+[project.scripts]
+sol-engine = "companion.engine:main"
+
+[tool.setuptools.packages.find]
+include = ["companion*"]
+
+[tool.setuptools.package-data]
+companion = ["web/*", "bridge_plugin/*", "workers/*"]
